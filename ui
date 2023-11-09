@@ -1,0 +1,195 @@
+import flet as ft
+import scraping as infobae
+#from flet import AppBar, ElevatedButton, Page, Text, View, colors
+import inicial as inicial
+
+def main(page: ft.Page):
+    page.window_width = 400
+    page.window_height = 700
+    page.window_resizable = True
+    page.theme_mode = ft.ThemeMode.LIGHT
+    page.title = "Gestor de Stock"
+    print("Initial route:", page.route)
+
+    # To "navigate" between pages we used page.go(route) - a helper method that updates
+    # page.route, calls page.on_route_change event handler to update views
+    # and finally calls page.update().
+
+    def route_change(e):
+        print("Route change:", e.route)
+        page.views.clear()
+        page.views.append(
+            ft.View("/",
+                [
+                    ft.AppBar(title=ft.Text("Bienvenidos al Gestor de Stock")),
+                    ft.Container(content=ft.Row([
+                        ft.ElevatedButton("Alta de Producto", on_click=open_alta_producto, width= 170),
+                        ft.ElevatedButton("Ingreso de Stock", on_click=open_modificar_stock, width= 170)    
+                    ])),
+                    ft.Container(content=ft.Row([
+                        ft.ElevatedButton("Consultar Stock", on_click=None, width= 170),
+                        ft.ElevatedButton("Analisis e Informes", on_click=None, width= 170)    
+                    ])),
+                    barra_navegacion,
+                    
+                ],
+            )
+        )
+        if page.route == "/alta_producto" or page.route == "/alta_producto/modificar_stock":
+            page.views.append(
+                ft.View("/alta_producto",
+                    [   ft.AppBar(title=ft.Text("Alta de Producto"), bgcolor=ft.colors.SURFACE_VARIANT),
+                        ft.ElevatedButton("Modificar Stock", on_click=open_modificar_stock),
+                        raiz,
+                        ft.FloatingActionButton(icon=ft.icons.ADD, on_click=ventana_emergente),
+                        barra_navegacion
+                    ],
+                )
+            )
+        if page.route == "/alta_producto/modificar_stock":
+            page.views.append(
+                ft.View("/alta_producto/modificar_stock",
+                    [
+                        ft.AppBar(title=ft.Text("Modificar Stock"), bgcolor=ft.colors.SURFACE_VARIANT),
+                        ft.Text("Modificar Stock (En construccion)!"),
+                        barra_navegacion
+                    ],
+                )
+            )
+        page.update()
+
+    # Vuelve atras: Elimina con pop el ultimo elemento de la lista Views
+    # Y desp hace page.go al anteultimo
+    # Solo funciona cuando apretas el boton de appbar atras
+    def view_pop(e):
+        print("View pop:", e.view)
+        page.views.pop()
+        top_view = page.views[-1]
+        page.go(top_view.route)
+
+    # Siempre que cambio de URL se ejecuta la funcion route_change
+    page.on_route_change = route_change
+    #Siempre que aprieto el boton de atras se ejecuta la funcion view_pop
+    page.on_view_pop = view_pop
+
+    def open_alta_producto(e):
+        page.go("/alta_producto")
+
+    def open_modificar_stock(e):
+        page.go("/alta_producto/modificar_stock")
+
+    def dolar(e):
+        if dolar_mep.value == "":        
+            infobae.cotizar_dolar()
+            dolar_mep.value = infobae.cotizacion_dolar["Dólar MEP"]
+            dolar_blue.value = infobae.cotizacion_dolar["Dólar Libre"]
+            dolar_oficial.value = infobae.cotizacion_dolar["Dólar Banco Nación"]
+            print(infobae.cotizacion_dolar["Dólar MEP"])
+            page.update()
+        else:
+            dolar_mep.value = ""
+            dolar_blue.value = ""
+            dolar_oficial.value = ""
+            page.update()
+        
+    def costear_usd(e):
+        if e.control.text == "Dólar MEP":
+            print(costo_corriente_pesos.value)
+            print(dolar_mep.value)
+            costo_corriente_dolar.value = round(float(costo_corriente_pesos.value) / float(dolar_mep.value),3)
+
+        elif e.control.text == "Dólar Libre":
+            costo_corriente_dolar.value = round(float(costo_corriente_pesos.value) / float(dolar_blue.value),3)
+
+        elif e.control.text == "Dólar Oficial":
+            costo_corriente_dolar.value = round(float(costo_corriente_pesos.value) / float(dolar_oficial.value),3)
+
+        page.update()
+        
+    def ventana_emergente(e):
+    #dlg = ft.AlertDialog(title=ft.Text(f"Cliente '{nombre_producto.value}' cargado..."))
+    #page.dialog = dlg
+    #dlg.open = True
+        page.snack_bar = ft.SnackBar(ft.Text(f"Producto '{nombre_producto.value}' cargado correctamente")
+                                        ,duration=2000)
+        page.snack_bar.open = True
+        
+        page.update()
+    
+    # Elementos carga de producto
+    #titulo_general = ft.Text("Bienvenidos al Gestor de Stock",left=5,style=ft.TextThemeStyle.HEADLINE_SMALL)
+    titulo_producto = ft.Text("Alta de producto",size=16,color=ft.colors.BLUE_600)
+    nombre_producto = ft.TextField(label="Nombre del producto",hint_text="Agregar nombre del producto",width=350,height=45)
+    bien_de_cambio = ft.Radio(label="Bien de cambio", value="Bien de Cambio")
+    bien_de_uso = ft.Radio(label="Bien de uso", value="Bien de Uso")
+    unidad_medida = ft.TextField(label="Unidad de Medida",hint_text="Agregar Unidad de Medida",width=350,height=45)
+    centro_de_costos = ft.TextField(label="Centro de Costos",hint_text="Agregar Centro de Costo ",width=350,height=45)
+    costo_corriente_pesos = ft.TextField(label="Costo en $",hint_text="Costo en $" , width=170,height=45 )
+    costo_corriente_dolar = ft.TextField(label="Costo en USD",hint_text="Costo en USD" , width=150,height=45  )
+
+    dolar_mep = ft.TextField(label="Dólar MEP",height=45)
+    dolar_blue = ft.TextField(label="Dólar Libre",height=45)
+    dolar_oficial = ft.TextField(label="Dólar Oficial",height=45)
+    cotizar_dolar = ft.Switch(label="Cotizar Dolar?", value=False, on_change=dolar)
+    imagen_fondo = ft.Image("img/dia.png")
+
+    menu_dolar = ft.PopupMenuButton(items=[
+        ft.PopupMenuItem(text = "Dólar Libre" , on_click=costear_usd),
+        ft.PopupMenuItem(text = "Dólar MEP" , on_click=costear_usd),
+        ft.PopupMenuItem(text = "Dólar Oficial" , on_click=costear_usd),
+    ])
+
+    cotizaciones_dolar = [
+        ft.Container(dolar_blue ,width=110),
+        ft.Container(dolar_mep, width=110),
+        ft.Container(dolar_oficial, width=110),
+    ]
+
+    costo_corriente = [
+        ft.Container(costo_corriente_pesos ,width=150),
+        ft.Container(costo_corriente_dolar,menu_dolar,width=150),
+        ft.Container(menu_dolar ,width=40)
+    ]
+
+    tipo_bien = [
+        ft.Container(bien_de_cambio ,width=160),
+        ft.Container(bien_de_uso, width=160) 
+    ]
+
+    """
+    titulo = ft.Stack(
+    [ft.Container(width=360, height=30,top=3,bgcolor=ft.colors.INDIGO_200,border_radius=20),
+        #titulo_general
+        ])
+    """
+
+    input_cliente = ft.Column([
+            ft.Container(titulo_producto),
+            ft.Container(nombre_producto),
+            ft.RadioGroup(content=ft.Row(tipo_bien)),
+            ft.Container(unidad_medida),
+            ft.Container(centro_de_costos),
+            ft.Container(content=ft.Row(costo_corriente)),
+            ft.Container(content=ft.Row(cotizaciones_dolar)),
+            ft.Container(cotizar_dolar)
+            ])
+
+    #superior = ft.Container(titulo,width=390,height=45, margin = ft.margin.only(top=5,left=3))
+    centro = ft.Container(input_cliente,width=390,height=400, margin = ft.margin.only(left=3))
+    #columna = ft.Column(controls=[superior,centro], spacing=0)
+    columna = ft.Column(controls=[centro], spacing=0)
+    contenedor = ft.Container(columna, width=400, height=700,alignment=ft.alignment.top_center)
+
+    raiz = ft.Container(ft.Stack([contenedor]))
+    
+    # BARRA INFERIOR DE NAVEGACION
+    barra_navegacion = page.navigation_bar = ft.NavigationBar(
+        destinations=[
+            ft.NavigationDestination(icon=ft.icons.EXPLORE, label="Principal"),
+            ft.NavigationDestination(icon=ft.icons.COMMUTE, label="Consultas"),
+            ft.NavigationDestination(icon=ft.icons.DARK_MODE,label="Theme Mode")
+        ])#,on_change=barra_navegacion)
+
+    page.go(page.route)
+
+ft.app(target=main, view=ft.WEB_BROWSER)
