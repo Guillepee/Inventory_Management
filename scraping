@@ -1,0 +1,26 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+
+cotizacion_dolar = {}
+
+def cotizar_dolar():
+    req = requests.get("https://www.infobae.com/economia")
+    soup = BeautifulSoup(req.text, features="lxml")
+
+    dolar = soup.select("div .exchange-dolar-container ")
+
+
+    for div in dolar:
+        for tipo in div.select(".exchange-dolar-item"):
+            cotizacion_dolar[tipo.find('a', class_='exchange-dolar-title').text] = tipo.select(".exchange-dolar-amount")[0].getText() # Agrego al Dict los elementos del div
+
+    for key, value in cotizacion_dolar.items():
+        cotizacion_dolar[key] = float(value.replace("$","").replace(",","."))
+
+    return cotizacion_dolar
+
+
+if __name__ == "__main__":
+    # Este código solo se ejecutará si el script se ejecuta como programa principal
+    cotizar_dolar()
